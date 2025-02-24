@@ -60,7 +60,7 @@ Se você quiser contribuir com este projeto, sinta-se à vontade para fazer um f
 - 🔗**Email**: brendaggouveia@gmail.com
 - 🔗**LinkedIn**: https://www.linkedin.com/in/brenda-gomes-gouveia
 - 🐙**GitHub**: https://github.com/brenda-gouveia
-- 
+
 ## 📝 Licença
 
 Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
