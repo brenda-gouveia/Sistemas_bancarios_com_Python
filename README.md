@@ -1,18 +1,21 @@
-# Desafio 1 - Trilha Python DIO
+# 🚀 Desafio 1 - Trilha Python DIO
+
+![Python](https://img.shields.io/badge/Python-3.x-blue) 
+![License](https://img.shields.io/badge/License-MIT-green)
 
 Meu código para o desafio da trilha python da DIO, que consiste em criar um sistema bancário simples. Adicionei uns detalhes a mais no extrato.
 
-## Descrição
+## 📌 Descrição
 
 Este projeto consiste em um sistema bancário simples em Python que permite aos usuários realizar operações como depósitos, saques e visualização de extrato. O sistema possui um limite de saque diário e um número máximo de saques permitidos por dia.
 
-## Funcionalidades
+## ✨ Funcionalidades
 
 - **Depósito**: Permite ao usuário depositar um valor na conta.
 - **Saque**: Permite ao usuário sacar um valor da conta, respeitando o limite diário e o número máximo de saques permitidos.
 - **Extrato**: Exibe um extrato das operações realizadas e o saldo atual da conta.
 
-## Como usar
+## 🖥 Como usar
 
 1. Clone este repositório para a sua máquina local.
    ```bash
@@ -27,7 +30,7 @@ Este projeto consiste em um sistema bancário simples em Python que permite aos 
    python desafio_1.py
    ```
 
-## Exemplo de Uso
+## 📸 Exemplo de Uso
 
 Ao executar o script, será exibido um menu com as opções disponíveis:
 
@@ -42,7 +45,7 @@ Ao executar o script, será exibido um menu com as opções disponíveis:
 
 Escolha a operação desejada e siga as instruções apresentadas.
 
-## Contribuição
+## 🤝 Contribuição
 
 Se você quiser contribuir com este projeto, sinta-se à vontade para fazer um fork do repositório, criar um branch para sua feature ou correção e abrir um pull request.
 
@@ -51,8 +54,14 @@ Se você quiser contribuir com este projeto, sinta-se à vontade para fazer um f
 3. Commit as mudanças (`git commit -m 'Adiciona nova feature'`).
 4. Push para o branch (`git push origin feature/nome-da-feature`).
 5. Abra um pull request.
+   
+## 📞 Contato
 
-## Licença
+- 🔗**Email**: brendaggouveia@gmail.com
+- 🔗**LinkedIn**: https://www.linkedin.com/in/brenda-gomes-gouveia
+- 🐙**GitHub**: https://github.com/brenda-gouveia
+- 
+## 📝 Licença
 
 Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
