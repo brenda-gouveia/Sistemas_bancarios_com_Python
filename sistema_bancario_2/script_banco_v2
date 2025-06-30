@@ -1,0 +1,140 @@
+
+lista_usuarios = []
+lista_contas = []
+
+# Variável global para controlar o número de contas
+n_contas = 0
+
+############################# CADASTRO DE USUÁRIOS E CONTAS ####################################
+
+def cadastrar_conta(cpf):
+    global n_contas
+    n_contas += 1
+    conta = {
+        "numero": "0001" + str(n_contas).zfill(3),
+        "cpf": cpf,
+        "saldo": 0,
+        "limite": 500,
+        "extrato": "",
+        "numero_saques": 0
+    }
+    lista_contas.append(conta)
+    for usuario in lista_usuarios:
+        if usuario['cpf'] == cpf:
+            usuario['qtd-conta'] += 1
+            print(f"Usuário {usuario['nome']} agora possui {usuario['qtd-conta']} conta(s).")
+            break
+    print(f"Conta cadastrada com sucesso! Número da conta: {conta['numero']}")
+
+def cadastrar_usuario(nome, cpf, data_nascimento, endereco):
+    global lista_usuarios
+    usuario = {
+        "nome": nome,
+        "cpf": cpf,
+        "data_nascimento": data_nascimento,
+        "endereco": endereco,
+        "qtd-conta": 0
+    }
+    lista_usuarios.append(usuario)
+    print(f"Usuário {usuario['nome']} cadastrado com sucesso!")
+
+    cadastrar_conta(cpf)
+
+def criar_usuario():
+    nome = input("Digite seu nome: ")
+    cpf = input("Digite seu CPF, apenas números: ")
+    data_nascimento = input("Digite sua data de nascimento (DD/MM/AAAA): ")
+    endereco = input("Digite seu endereço: ")
+
+    cadastrar_usuario(nome, cpf, data_nascimento, endereco)
+##############################################################################################
+
+def entrada(mensagem):
+    return input(mensagem)
+
+menu_usuario = """
+
+[d] Depositar
+[s] Sacar
+[e] Extrato
+[q] Sair
+
+=> """
+
+menu_inicial = """
+Bem-vindo ao Banco DIO
+
+Você possui conta com a gente?
+[s] Sim
+[n] Não
+=> """
+
+
+saldo = 0
+limite = 500
+extrato = ""
+numero_saques = 0
+LIMITE_SAQUES = 3
+
+while True:
+    #################################### MENU INICIAL ####################################
+    if entrada(menu_inicial) == "n":
+        if entrada("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
+            criar_usuario()
+        
+    elif entrada(menu_inicial) == "s":
+        print("Ótimo, vamos começar a operar com sua conta")
+    else:
+        print("Opção inválida, por favor tente novamente")
+        continue
+
+    ######################################################################
+
+    opcao = entrada(menu)
+
+    if opcao == "d":
+        valor_deposito = float(entrada("Digite o valor do seu depósito: "))
+
+        if valor_deposito <0:
+            print("Valor errado, por favor tente novamente")
+        else:
+            saldo += valor_deposito
+            extrato += f"Depósito: R$ {valor_deposito: 0.2f} | Saldo final: R$ {saldo: 0.2f}\n"
+            print("Valor depositado, Tenha um bom dia !!")
+        
+    elif opcao == "s":
+
+        """Autorização de Saque """
+        autorizacao_saque = numero_saques < LIMITE_SAQUES and saldo > 0
+
+        if autorizacao_saque:
+            valor_saque = float(entrada("""Saque autorizado !!! Coloque o valor a ser sacado: """))
+
+            if valor_saque <= 500 and valor_saque <= saldo:
+                saldo -= valor_saque
+                numero_saques += 1
+                extrato += f"Saque: {numero_saques} | Valor sacado : R$ {valor_saque:0.2f} | Saldo final: R$ {saldo:0.2f}\n"
+
+                print("Operação bem-sucedida, Obrigado por ter escolhido nosso banco")
+
+
+            else:
+
+                print("Valor excedeu o valor máximo a sacar ou não possui saldo o suficiente")
+
+        else:
+            print('Saque não autorizado !! Número de saques já atingiu o limite ou não possui saldo')
+
+
+    elif opcao == "e":
+        print('Extrato'.center(30,'*'))
+        if extrato:
+            print(extrato)
+        else:
+            print("Sem movimentações a mostrar !\n")
+        print(f"{'Saldo Atual'.center(30,'*')}\n R$ {saldo:0.2f}\n")
+    
+    elif opcao == "q":
+        break
+    else:
+        print("Operação inválida, por favor selecione novamente a operação desejada.")
