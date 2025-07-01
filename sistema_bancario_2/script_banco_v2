@@ -78,17 +78,35 @@ LIMITE_SAQUES = 3
 
 while True:
     #################################### MENU INICIAL ####################################
+    # Caso o usuário não tenha conta
     if entrada(menu_inicial) == "n":
         if entrada("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
             criar_usuario()
-        
+        else:
+            print("Operação cancelada, por favor tente novamente mais tarde")
+            continue
+    #Caso o usuário já tenha conta    
     elif entrada(menu_inicial) == "s":
         print("Ótimo, vamos começar a operar com sua conta")
     else:
         print("Opção inválida, por favor tente novamente")
         continue
 
-    ######################################################################
+    ####################################  AUTENTICACAO ##################################
+    cpf_usuario = entrada("Digite seu CPF, apenas números: ")
+    if cpf_usuario not in [usuario['cpf'] for usuario in lista_usuarios]:
+        print("CPF não encontrado, por favor tente novamente")
+        continue
+    else:
+        usuario_autenticado = next(usuario for usuario in lista_usuarios if usuario['cpf'] == cpf_usuario)
+        print(f"Bem-vindo(a) {usuario_autenticado['nome']}!")
+
+
+    #################################### SELECIONAR CONTA ##############################################
+
+
+
+    #####################################################################################################
 
     opcao = entrada(menu)
 
