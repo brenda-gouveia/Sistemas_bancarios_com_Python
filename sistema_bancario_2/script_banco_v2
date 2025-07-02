@@ -103,12 +103,42 @@ while True:
 
 
     #################################### SELECIONAR CONTA ##############################################
+    qtd_contas = usuario_autenticado['qtd-conta']
+    print(f"Você possui {qtd_contas} contas cadastradas. \n")
 
+    if input("Pressione enter para continuar ou digite 'c' para criar uma nova conta: ") == "c":
+        cadastrar_conta(cpf_usuario)
+        continue
 
+    if qtd_contas == 0:
+        print("Você não possui contas cadastradas. Por favor, crie uma conta primeiro.")
+        cadastrar_conta(cpf_usuario)
+        continue
+    elif qtd_contas == 1:
+        conta_usuario = next(conta for conta in lista_contas if conta['cpf'] == cpf_usuario)
+        print(f"Conta selecionada: {conta_usuario['numero']}")
+    elif qtd_contas > 1:
+
+        contas_usuario = []
+        for conta in lista_contas:
+            if conta['cpf'] == cpf_usuario:
+                contas_usuario.append(conta)
+        print("Contas encontradas para este CPF:")
+
+        for idx, conta in enumerate(contas_usuario, 1):
+            print(f"{idx}. Número da conta: {conta['numero']}")
+        conta_selecionada = int(entrada("Selecione o número da conta que deseja operar: ")) - 1
+
+        if 0 <= conta_selecionada < len(contas_usuario):
+            conta_usuario = contas_usuario[conta_selecionada]
+            print(f"Conta selecionada: {conta_usuario['numero']}")
+        else:
+            print("Número da conta inválido, por favor tente novamente.")
+            continue
 
     #####################################################################################################
 
-    opcao = entrada(menu)
+    opcao = entrada("menu")
 
     if opcao == "d":
         valor_deposito = float(entrada("Digite o valor do seu depósito: "))
