@@ -1,9 +1,51 @@
 
-lista_usuarios = []
-lista_contas = []
+lista_usuarios = [
+    {
+        "nome": "Ana Silva",
+        "cpf": "12345678901",
+        "data_nascimento": "01/01/1990",
+        "endereco": "Rua das Flores, 123",
+        "qtd-conta": 1
+    },
+    {
+        "nome": "Bruno Souza",
+        "cpf": "98765432100",
+        "data_nascimento": "15/05/1985",
+        "endereco": "Av. Brasil, 456",
+        "qtd-conta": 2
+    }
+]
+
+lista_contas = [
+    {
+        "numero": "0001001",
+        "cpf": "12345678901",
+        "saldo": 1000,
+        "limite": 500,
+        "extrato": "",
+        "numero_saques": 0
+    },
+    {
+        "numero": "0001002",
+        "cpf": "98765432100",
+        "saldo": 500,
+        "limite": 500,
+        "extrato": "",
+        "numero_saques": 0
+    },
+    {
+        "numero": "0001003",
+        "cpf": "98765432100",
+        "saldo": 1500,
+        "limite": 500,
+        "extrato": "",
+        "numero_saques": 0
+    }
+]
 
 # Variável global para controlar o número de contas
-n_contas = 0
+n_contas = len(lista_contas)
+LIMITE_SAQUES = 3
 
 ############################# CADASTRO DE USUÁRIOS E CONTAS ####################################
 
@@ -47,19 +89,41 @@ def criar_usuario():
     endereco = input("Digite seu endereço: ")
 
     cadastrar_usuario(nome, cpf, data_nascimento, endereco)
-##############################################################################################
+################################### OPERACOES ###########################################################
+def deposito(saldo, valor, extrato):
+    saldo += valor
+    extrato += f"Depósito: R$ {valor:.2f}\n"
+    print(f"Depósito realizado com sucesso! Novo saldo: R$ {saldo:.2f}")
+    
+    return saldo, extrato
+def saque(**kwargs):
+    saldo = kwargs.get('saldo')
+    saque = kwargs.get('saque')
+    extrato = kwargs.get('extrato')
 
+    
+    saldo -= saque
+    conta_usuario['numero_saques'] += 1
+    extrato += f"Saque: {conta_usuario['numero_saques']} | Valor sacado : R$ {saque:0.2f} | Saldo final: R$ {saldo:0.2f}\n"
+
+    print("Operação bem-sucedida, Obrigado por ter escolhido nosso banco")
+
+    return saldo, extrato
+
+def extrato(saldo,*, extrato):
+    print('Extrato'.center(30,'*'))
+    if extrato:
+        print(extrato)
+    else:
+        print("Sem movimentações a mostrar !\n")
+    
+    print(f"{'Saldo Atual'.center(30,'*')}\n R$ {saldo:0.2f}\n")
+    
+        
+###########################################################################################################
 def entrada(mensagem):
     return input(mensagem)
 
-menu_usuario = """
-
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
 
 menu_inicial = """
 Bem-vindo ao Banco DIO
@@ -69,31 +133,26 @@ Você possui conta com a gente?
 [n] Não
 => """
 
-
-saldo = 0
-limite = 500
-extrato = ""
-numero_saques = 0
-LIMITE_SAQUES = 3
-
 while True:
     #################################### MENU INICIAL ####################################
     # Caso o usuário não tenha conta
-    if entrada(menu_inicial) == "n":
+    digito = input(menu_inicial)
+
+    if digito == "n":
         if entrada("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
             criar_usuario()
         else:
             print("Operação cancelada, por favor tente novamente mais tarde")
             continue
     #Caso o usuário já tenha conta    
-    elif entrada(menu_inicial) == "s":
+    elif digito == "s":
         print("Ótimo, vamos começar a operar com sua conta")
     else:
         print("Opção inválida, por favor tente novamente")
         continue
 
     ####################################  AUTENTICACAO ##################################
-    cpf_usuario = entrada("Digite seu CPF, apenas números: ")
+    cpf_usuario = input("Digite seu CPF, apenas números: ")
     if cpf_usuario not in [usuario['cpf'] for usuario in lista_usuarios]:
         print("CPF não encontrado, por favor tente novamente")
         continue
@@ -104,21 +163,21 @@ while True:
 
     #################################### SELECIONAR CONTA ##############################################
     qtd_contas = usuario_autenticado['qtd-conta']
-    print(f"Você possui {qtd_contas} contas cadastradas. \n")
-
-    if input("Pressione enter para continuar ou digite 'c' para criar uma nova conta: ") == "c":
-        cadastrar_conta(cpf_usuario)
-        continue
 
     if qtd_contas == 0:
         print("Você não possui contas cadastradas. Por favor, crie uma conta primeiro.")
         cadastrar_conta(cpf_usuario)
         continue
-    elif qtd_contas == 1:
+
+    print(f"Você possui {qtd_contas} contas cadastradas. \n")
+
+    # Se o usuário tiver apenas uma conta, seleciona automaticamente
+    if qtd_contas == 1:
         conta_usuario = next(conta for conta in lista_contas if conta['cpf'] == cpf_usuario)
         print(f"Conta selecionada: {conta_usuario['numero']}")
-    elif qtd_contas > 1:
 
+    # Se o usuário tiver mais de uma conta, permite a seleção
+    elif qtd_contas > 1:
         contas_usuario = []
         for conta in lista_contas:
             if conta['cpf'] == cpf_usuario:
@@ -136,51 +195,57 @@ while True:
             print("Número da conta inválido, por favor tente novamente.")
             continue
 
-    #####################################################################################################
 
-    opcao = entrada("menu")
+    ############################### MENU_OPERAÇOES ######################################################################
+
+    menu_op = """
+Selecione a operação desejada:
+
+[d] Depositar
+[s] Sacar
+[e] Extrato
+[q] Sair
+
+=> """
+
+    opcao = entrada(menu_op)
 
     if opcao == "d":
-        valor_deposito = float(entrada("Digite o valor do seu depósito: "))
-
-        if valor_deposito <0:
-            print("Valor errado, por favor tente novamente")
-        else:
-            saldo += valor_deposito
-            extrato += f"Depósito: R$ {valor_deposito: 0.2f} | Saldo final: R$ {saldo: 0.2f}\n"
-            print("Valor depositado, Tenha um bom dia !!")
+        valor = float(entrada("Digite o valor do seu depósito: "))
         
+        try:
+            if valor < 0:
+                raise ValueError("Valor de depósito inválido.")
+        except ValueError as e:
+            print(e)
+            continue    
+
+        saldo,extrato = deposito(conta_usuario["saldo"], valor, conta_usuario['extrato'])
+        conta_usuario['saldo'] = saldo
+        conta_usuario['extrato'] = extrato
+
     elif opcao == "s":
 
         """Autorização de Saque """
-        autorizacao_saque = numero_saques < LIMITE_SAQUES and saldo > 0
-
-        if autorizacao_saque:
-            valor_saque = float(entrada("""Saque autorizado !!! Coloque o valor a ser sacado: """))
-
-            if valor_saque <= 500 and valor_saque <= saldo:
-                saldo -= valor_saque
-                numero_saques += 1
-                extrato += f"Saque: {numero_saques} | Valor sacado : R$ {valor_saque:0.2f} | Saldo final: R$ {saldo:0.2f}\n"
-
-                print("Operação bem-sucedida, Obrigado por ter escolhido nosso banco")
-
-
-            else:
-
-                print("Valor excedeu o valor máximo a sacar ou não possui saldo o suficiente")
-
-        else:
+        autorizacao_saque = conta_usuario['numero_saques'] < LIMITE_SAQUES and conta_usuario['saldo'] > 0
+        try:
+            if autorizacao_saque:
+                saque = float(entrada("""Saque autorizado !!! Coloque o valor a ser sacado: """))
+        except ValueError:
             print('Saque não autorizado !! Número de saques já atingiu o limite ou não possui saldo')
-
+            continue
+        try:
+            if (saque > 0) or (saque <= 500 and saque <= saldo):
+                saldo, extrato = saque(saldo=conta_usuario['saldo'], saque=saque, extrato=conta_usuario['extrato'])
+                conta_usuario['numero_saques'] += 1
+                conta_usuario['saldo'] = saldo
+                conta_usuario['extrato'] = extrato         
+        except ValueError:
+            print("Valor excedeu o valor máximo a sacar ou não possui saldo o suficiente")
+            continue
 
     elif opcao == "e":
-        print('Extrato'.center(30,'*'))
-        if extrato:
-            print(extrato)
-        else:
-            print("Sem movimentações a mostrar !\n")
-        print(f"{'Saldo Atual'.center(30,'*')}\n R$ {saldo:0.2f}\n")
+        extrato(conta_usuario['saldo'], extrato=conta_usuario['extrato'])
     
     elif opcao == "q":
         break
