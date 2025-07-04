@@ -121,8 +121,6 @@ def extrato(saldo,*, extrato):
     
         
 ###########################################################################################################
-def entrada(mensagem):
-    return input(mensagem)
 
 
 menu_inicial = """
@@ -139,7 +137,7 @@ while True:
     digito = input(menu_inicial)
 
     if digito == "n":
-        if entrada("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
+        if input("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
             criar_usuario()
         else:
             print("Operação cancelada, por favor tente novamente mais tarde")
@@ -186,7 +184,7 @@ while True:
 
         for idx, conta in enumerate(contas_usuario, 1):
             print(f"{idx}. Número da conta: {conta['numero']}")
-        conta_selecionada = int(entrada("Selecione o número da conta que deseja operar: ")) - 1
+        conta_selecionada = int(input("Selecione o número da conta que deseja operar: ")) - 1
 
         if 0 <= conta_selecionada < len(contas_usuario):
             conta_usuario = contas_usuario[conta_selecionada]
@@ -208,10 +206,10 @@ Selecione a operação desejada:
 
 => """
 
-    opcao = entrada(menu_op)
+    opcao = input(menu_op)
 
     if opcao == "d":
-        valor = float(entrada("Digite o valor do seu depósito: "))
+        valor = float(input("Digite o valor do seu depósito: "))
         
         try:
             if valor < 0:
@@ -230,7 +228,7 @@ Selecione a operação desejada:
         autorizacao_saque = conta_usuario['numero_saques'] < LIMITE_SAQUES and conta_usuario['saldo'] > 0
         try:
             if autorizacao_saque:
-                saque = float(entrada("""Saque autorizado !!! Coloque o valor a ser sacado: """))
+                saque = float(input("""Saque autorizado !!! Coloque o valor a ser sacado: """))
         except ValueError:
             print('Saque não autorizado !! Número de saques já atingiu o limite ou não possui saldo')
             continue
