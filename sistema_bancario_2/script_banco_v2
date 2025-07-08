@@ -1,100 +1,81 @@
+import textwrap
+import os
 
-lista_usuarios = [
-    {
-        "nome": "Ana Silva",
-        "cpf": "12345678901",
-        "data_nascimento": "01/01/1990",
-        "endereco": "Rua das Flores, 123",
-        "qtd-conta": 1
-    },
-    {
-        "nome": "Bruno Souza",
-        "cpf": "98765432100",
-        "data_nascimento": "15/05/1985",
-        "endereco": "Av. Brasil, 456",
-        "qtd-conta": 2
-    }
-]
-
-lista_contas = [
-    {
-        "numero": "0001001",
-        "cpf": "12345678901",
-        "saldo": 1000,
-        "limite": 500,
-        "extrato": "",
-        "numero_saques": 0
-    },
-    {
-        "numero": "0001002",
-        "cpf": "98765432100",
-        "saldo": 500,
-        "limite": 500,
-        "extrato": "",
-        "numero_saques": 0
-    },
-    {
-        "numero": "0001003",
-        "cpf": "98765432100",
-        "saldo": 1500,
-        "limite": 500,
-        "extrato": "",
-        "numero_saques": 0
-    }
-]
-
-# Variável global para controlar o número de contas
-n_contas = len(lista_contas)
-LIMITE_SAQUES = 3
-
+def limpar_tela():
+    """Limpa a tela do terminal."""
+    os.system('cls' if os.name == 'nt' else 'clear')
 ############################# CADASTRO DE USUÁRIOS E CONTAS ####################################
-def verificar_cpf_existente():
+def exibir_menu(texto):
+    """
+    Exibe um menu e retorna a opção escolhida pelo usuário.
+    """
+    return input(textwrap.dedent(texto))
+
+def verificar_cpf_valido():
+    """
+    Verifica se o CPF informado pelo usuário é válido e retorna o CPF.
+    """
     cpf = input("Digite o CPF (apenas números): ").strip().replace(".", "").replace("-", "")
     if not cpf.isdigit() or len(cpf) != 11:
         print("@@@ CPF inválido. Deve conter 11 números. @@@")
         return None
     return cpf
 
-def filtrar_contas_por_cpf(conta_usuario):
+def filtrar_contas_por_cpf(cpf_usuario, lista_contas):
+    """ Filtra as contas de acordo com o CPF do usuário.
+    """
     contas_usuario = []
     for conta in lista_contas:
         if conta['cpf'] == cpf_usuario:
             contas_usuario.append(conta)
     return contas_usuario
 
-def selecionar_conta(conta_usuario):
-    qtd_contas = conta_usuario['qtd-conta']
-    if qtd_contas == 0:
-        print("Usuário não possui contas cadastradas.")
-        return None
-    
-    contas_do_usuario = filtrar_contas_por_cpf(cpf_usuario)
-    
-    print("Contas encontradas para este CPF:")
+def selecionar_conta(conta_usuario, lista_contas):
+    """Seleciona uma conta do usuário autenticado.
+    """
+    contas_do_usuario = filtrar_contas_por_cpf(conta_usuario['cpf'], lista_contas)
 
+    if not contas_do_usuario:
+        print("@@@ Usuário não possui contas cadastradas. @@@")
+        return None
+
+    if len(contas_do_usuario) == 1:
+        conta = contas_do_usuario[0]
+        print(f"Conta selecionada automaticamente: {conta['numero']}")
+        return conta
+
+    print("Contas encontradas para este CPF:")
     for idx, conta in enumerate(contas_do_usuario, 1):
         print(f"{idx}. Número da conta: {conta['numero']}")
-    conta_selecionada = int(input("Selecione o número da conta que deseja operar: ")) - 1
+
+    try:
+        conta_selecionada = int(input("Selecione o número da conta que deseja operar: ")) - 1
+    except ValueError:
+        print("@@@ Entrada inválida. Por favor, digite um número. @@@")
+        return None
 
     if 0 <= conta_selecionada < len(contas_do_usuario):
-        conta_usuario = contas_do_usuario[conta_selecionada]
-        print(f"Conta selecionada: {conta_usuario['numero']}")
-        return conta_usuario
+        conta = contas_do_usuario[conta_selecionada]
+        print(f"Conta selecionada: {conta['numero']}")
+        return conta
     else:
-        print("Número da conta inválido, por favor tente novamente.")
+        print("@@@ Número de conta inválido. Tente novamente. @@@")
         return None
     
 
-def buscar_usuário_por_cpf(cpf):
-    usuario_autenticado = next(usuario for usuario in lista_usuarios if usuario['cpf'] == cpf)
+def buscar_usuário_por_cpf(cpf, lista_usuarios):
+    """
+    Busca um usuário na lista de usuários pelo CPF.
+    """
+    usuario_autenticado = next((usuario for usuario in lista_usuarios if usuario['cpf'] == cpf), None)
     if usuario_autenticado:
         return usuario_autenticado
     else:
-        print("Usuário não encontrado.")
         return None
     
-def cadastrar_conta(cpf):
-    global n_contas
+def cadastrar_conta(cpf, n_contas):
+    """ Cadastra uma nova conta para o usuário com o CPF fornecido.
+    """
     n_contas += 1
     conta = {
         "numero": "0001" + str(n_contas).zfill(3),
@@ -104,41 +85,69 @@ def cadastrar_conta(cpf):
         "extrato": "",
         "numero_saques": 0
     }
-    lista_contas.append(conta)
-    usuario = buscar_usuário_por_cpf(cpf)
-    usuario['qtd-conta'] += 1
-    print(f"Usuário {usuario['nome']} agora possui {usuario['qtd-conta']} conta(s).")
-    print(f"Conta cadastrada com sucesso! Número da conta: {conta['numero']}")
+
+    return conta
 
 def cadastrar_usuario(nome, cpf, data_nascimento, endereco):
-    global lista_usuarios
+    """ Cadastra um novo usuário com as informações fornecidas.
+    """
     usuario = {
         "nome": nome,
         "cpf": cpf,
         "data_nascimento": data_nascimento,
         "endereco": endereco,
-        "qtd-conta": 0
+        "qtd_conta": 0
     }
-    lista_usuarios.append(usuario)
-    print(f"Usuário {usuario['nome']} cadastrado com sucesso!")
+    print(f"--- Usuário {usuario['nome']} cadastrado com sucesso!---")
 
-    cadastrar_conta(cpf)
+    return usuario
 
-def criar_usuario():
+
+def criar_usuario(lista_contas, lista_usuarios):
+    """ Cria um novo usuário solicitando as informações necessárias.
+    """
+    menu_criar_usuario = """============== CRIAÇÃO DE USUÁRIO ==============
+Siga os próximos passos para criar um usuário:
+    """
+    limpar_tela()
+    print(menu_criar_usuario)
+
     nome = input("Digite seu nome: ")
-    cpf = input("Digite seu CPF, apenas números: ")
+    cpf = verificar_cpf_valido()
+    if not cpf:
+        print("CPF inválido.")
+        return
+    if buscar_usuário_por_cpf(cpf, lista_usuarios):
+        print("Usuário já cadastrado com esse CPF.")
+        return
     data_nascimento = input("Digite sua data de nascimento (DD/MM/AAAA): ")
     endereco = input("Digite seu endereço: ")
 
-    cadastrar_usuario(nome, cpf, data_nascimento, endereco)
+    usuario = cadastrar_usuario(nome, cpf, data_nascimento, endereco)
+
+    lista_usuarios.append(usuario)
+
+    conta = cadastrar_conta(cpf, len(lista_contas))
+
+    lista_contas.append(conta)
+
+    usuario['qtd_conta'] += 1
+    print(f"--- Usuário {usuario['nome']} agora possui {usuario['qtd_conta']} conta(s). ---")
+    print(f"--- Conta cadastrada com sucesso! Número da conta: {conta['numero']} ---")
+
+
 ################################### OPERACOES ###########################################################
 def deposito(saldo, valor, extrato, /):
+    """Realiza um depósito na conta do usuário.
+    """
     saldo += valor
     extrato += f"Depósito: R$ {valor:.2f}\n"
-    print(f"Depósito realizado com sucesso! Novo saldo: R$ {saldo:.2f}")
+    print(f"--- Depósito realizado com sucesso! Novo saldo: R$ {saldo:.2f} ---")
     
     return saldo, extrato
-def sacar(*, saldo, saque, extrato, numero_saques, limite, limite_saques=LIMITE_SAQUES):
+def sacar(*, saldo, saque, extrato, numero_saques, limite, limite_saques=3):
+    """Realiza um saque na conta do usuário.
+    """
 
     if saque <= 0:
         return saldo, extrato, numero_saques, "valor_invalido"
@@ -156,20 +165,31 @@ def sacar(*, saldo, saque, extrato, numero_saques, limite, limite_saques=LIMITE_
     numero_saques += 1
     extrato += f"Saque: {numero_saques} | Valor sacado : R$ {saque:0.2f} | Saldo final: R$ {saldo:0.2f}\n"
 
-    print("Operação bem-sucedida, Obrigado por ter escolhido nosso banco")
+    print("--- Operação bem-sucedida, Obrigado por ter escolhido nosso banco ---")
 
     return saldo, extrato, numero_saques, "sucesso"
 
 def extrato(saldo,/,*, extrato):
-    print('Extrato'.center(30,'*'))
+    """Exibe o extrato da conta do usuário.
+    """
+
+    cabecalho = """
+        ============== EXTRATO ==============
+    """
+    print(textwrap.dedent(cabecalho))
+    
     if extrato:
         print(extrato)
     else:
         print("Sem movimentações a mostrar !\n")
     
-    print(f"{'Saldo Atual'.center(30,'*')}\n R$ {saldo:0.2f}\n")
-    
+    print("-" * 40)
+    print(f"{'Saldo atual:':<15} R$ {saldo:.2f}")
+    print("=" * 40)
+
 def solicitar_valor(tipo):
+    """ Solicita um valor ao usuário para depósito ou saque.
+    """
     try:
         valor = float(input(f"Informe o valor para {tipo}: "))
         if valor <= 0:
@@ -180,105 +200,167 @@ def solicitar_valor(tipo):
         print("@@@ Entrada inválida. @@@")
         return None        
 ###########################################################################################################
-
-
-menu_inicial = """
-Bem-vindo ao Banco DIO
-
-Você possui conta com a gente?
-[s] Sim
-[n] Não
-=> """
-
-while True:
-    #################################### MENU INICIAL ####################################
-    # Caso o usuário não tenha conta
-    digito = input(menu_inicial)
-
-    if digito == "n":
-        if input("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
-            criar_usuario()
-        else:
-            print("Operação cancelada, por favor tente novamente mais tarde")
-            continue
-    #Caso o usuário já tenha conta    
-    elif digito == "s":
-        print("Ótimo, vamos começar a operar com sua conta")
-    else:
-        print("Opção inválida, por favor tente novamente")
-        continue
-
-    ####################################  AUTENTICACAO ##################################
-
-    # Solicita o CPF do usuário
-    cpf_usuario = verificar_cpf_existente()
-    if not cpf_usuario: continue
-
-    # Verifica se o CPF existe na lista de usuários
-    usuario= buscar_usuário_por_cpf(cpf_usuario)
-    if not usuario:
-         print("Usuário não encontrado.")
-         continue
-    
-    print(f"Bem-vindo(a) {usuario['nome']}!")
-
-    #################################### SELECIONAR CONTA ##############################################
-
-    conta = selecionar_conta(usuario)
-
-    if not conta:
-        continue
-
-    ############################### MENU_OPERAÇOES ######################################################################
-
-    ## Nesse ponto temos o usuário e a conta selecionada (usuario e conta)
-
-    menu_op = """
-Selecione a operação desejada:
-
-[d] Depositar
-[s] Sacar
-[e] Extrato
-[q] Sair
-
-=> """
-
-    opcao = input(menu_op)
-
-    if opcao == "d":
-        valor = solicitar_valor("depósito")
-        if valor is None:
-            continue   
-
-        conta['saldo'], conta['extrato'] = deposito(conta["saldo"], valor, conta['extrato'])
-
-    elif opcao == "s":
-
-        mensagens = {
-        "sucesso": "=== Saque realizado com sucesso! ===",
-        "valor_invalido": "@@@ Valor inválido para saque. @@@",
-        "saldo_insuficiente": "@@@ Saldo insuficiente. @@@",
-        "limite_excedido": "@@@ Saque excede o limite. @@@",
-        "saques_excedidos": "@@@ Número máximo de saques excedido. @@@"
+def main():
+    """Função principal que executa o sistema bancário.
+    """
+    lista_usuarios = [
+        {
+            "nome": "Ana Silva",
+            "cpf": "12345678901",
+            "data_nascimento": "01/01/1990",
+            "endereco": "Rua das Flores, 123",
+            "qtd_conta": 1
+        },
+        {
+            "nome": "Bruno Souza",
+            "cpf": "98765432100",
+            "data_nascimento": "15/05/1985",
+            "endereco": "Av. Brasil, 456",
+            "qtd_conta": 2
         }
+    ]
 
-        saque = solicitar_valor("saque")
-        if saque is None:   
+    lista_contas = [
+        {
+            "numero": "0001001",
+            "cpf": "12345678901",
+            "saldo": 1000,
+            "limite": 500,
+            "extrato": "",
+            "numero_saques": 0
+        },
+        {
+            "numero": "0001002",
+            "cpf": "98765432100",
+            "saldo": 500,
+            "limite": 500,
+            "extrato": "",
+            "numero_saques": 0
+        },
+        {
+            "numero": "0001003",
+            "cpf": "98765432100",
+            "saldo": 1500,
+            "limite": 500,
+            "extrato": "",
+            "numero_saques": 0
+        }
+    ]
+
+    menu_inicial = """
+    Bem-vindo ao Banco DIO
+
+    Você possui conta com a gente?
+    [s] Sim
+    [n] Não
+    => """
+
+    while True:
+        #################################### MENU INICIAL ####################################
+        limpar_tela()
+        # Caso o usuário não tenha conta
+        digito = exibir_menu(menu_inicial)
+
+        if digito == "n":
+            if input("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
+                criar_usuario(lista_contas,lista_usuarios)
+            else:
+                print("@@@ Operação cancelada, por favor tente novamente mais tarde @@@")
+                continue
+        #Caso o usuário já tenha conta    
+        elif digito == "s":
+            print("--- Ótimo, vamos começar a operar com sua conta ---")
+        else:
+            print("@@@ Opção inválida, por favor tente novamente @@@")
             continue
 
-        conta['saldo'], conta['extrato'], status = sacar(saldo=conta['saldo'], saque=saque, 
-                                                         extrato=conta['extrato'], 
-                                                         numero_saques=conta['numero_saques'], 
-                                                         limite=conta['limite'])
+        ####################################  AUTENTICACAO ##################################
+        limpar_tela()
+
+        menu_autenticacao = """
+        ============== AUTENTICAÇÃO ==============
+        Siga os próximos passos para logar em sua conta:
+        """
+        exibir_menu(menu_autenticacao)
+
+        # Solicita o CPF do usuário
+        cpf_usuario = verificar_cpf_valido()
+        if not cpf_usuario: continue
+
+        # Verifica se o CPF existe na lista de usuários
+        usuario= buscar_usuário_por_cpf(cpf_usuario, lista_usuarios)
+        if not usuario:
+            print("@@@ Usuário não encontrado. @@@")
+            continue
         
-        print(mensagens[status])
+        print(f"--- Bem-vindo(a) {usuario['nome']}!---")
+        input("Pressione Enter para continuar...")
+        limpar_tela()
 
-    
+        #################################### SELECIONAR CONTA ##############################################
 
-    elif opcao == "e":
-        extrato(conta['saldo'], extrato=conta['extrato'])
-    
-    elif opcao == "q":
-        break
-    else:
-        print("Operação inválida, por favor selecione novamente a operação desejada.")
+        conta = selecionar_conta(usuario, lista_contas)
+
+        if not conta:
+            continue
+
+        ############################### MENU_OPERAÇOES ######################################################################
+
+        ## Nesse ponto temos o usuário e a conta selecionada (usuario e conta)
+
+        menu_op = """
+    Selecione a operação desejada:
+
+    [d] Depositar
+    [s] Saca
+    [e] Extrato
+    [q] Sair
+
+    => """
+        limpar_tela()
+        opcao = exibir_menu(menu_op)
+
+        if opcao == "d":
+            valor = solicitar_valor("depósito")
+            if valor is None:
+                continue   
+
+            conta['saldo'], conta['extrato'] = deposito(conta["saldo"], valor, conta['extrato'])
+
+        elif opcao == "s":
+
+            mensagens = {
+            "sucesso": "=== Saque realizado com sucesso! ===",
+            "valor_invalido": "@@@ Valor inválido para saque. @@@",
+            "saldo_insuficiente": "@@@ Saldo insuficiente. @@@",
+            "limite_excedido": "@@@ Saque excede o limite. @@@",
+            "saques_excedidos": "@@@ Número máximo de saques excedido. @@@"
+            }
+
+            saque = solicitar_valor("saque")
+            if saque is None:   
+                continue
+
+            conta['saldo'], conta['extrato'], conta['numero_saques'], status = sacar(saldo=conta['saldo'], saque=saque, 
+                                                            extrato=conta['extrato'], 
+                                                            numero_saques=conta['numero_saques'], 
+                                                            limite=conta['limite'])
+            
+            print(mensagens[status])
+
+        
+
+        elif opcao == "e":
+            extrato(conta['saldo'], extrato=conta['extrato'])
+        
+        elif opcao == "q":
+            break
+        else:
+            print("Operação inválida, por favor selecione novamente a operação desejada.")
+        
+        print("Agradecemos por ter escolhido nosso banco, volte sempre!")
+        input("Pressione Enter para continuar...")
+        limpar_tela()
+
+if __name__ == "__main__":
+    main()
