@@ -1,6 +1,37 @@
 from abc import ABC, abstractmethod
+import os
+import re
+import textwrap
 
+class Banco:
+    def __init__(self):
+        self._clientes = []
+        self._contas = []
 
+    def adicionar_cliente(self, cliente):
+        self._clientes.append(cliente)
+
+    def criar_conta_corrente(self, cliente):
+        self.adicionar_cliente(cliente)
+        conta = ContaCorrente.nova_conta(cliente, str(self.numero).zfill(3))
+        self._contas.append(conta)
+        cliente.adicionar_conta(conta)
+
+        return conta
+    
+    @property
+    def numero(self):
+        """
+        Retorna o número total de contas no banco.
+        """
+        return len(self._contas) + 1
+
+    def buscar_cliente_por_cpf(self, cpf):
+        return next((c for c in self.clientes if c.cpf == cpf), None)
+
+    def buscar_conta_por_numero(self, numero):
+        return next((c for c in self.contas if c.numero == numero), None)
+    
 class Transacao(ABC):
     @abstractmethod
     def registrar(self, conta):
@@ -20,7 +51,35 @@ class Saque(Transacao):
         pass
 
 class Conta():
-    pass
+    def __init__(self, saldo, numero, agencia, cliente, historico=None): 
+        self._saldo = saldo
+        self._numero = numero
+        self._agencia = agencia
+        self._cliente = cliente
+        self._historico = historico or Historico()
+
+    @property
+    def saldo(self):
+        return self._saldo
+    
+    def nova_conta(cls, cliente, numero):
+        """
+        Método de classe para criar uma nova conta.
+        """
+        pass
+    def sacar(self, valor):
+        """
+        Método para sacar um valor da conta.
+        """
+        pass
+    def depositar(self, valor):
+        """
+        Método para depositar um valor na conta.
+        """
+        pass
+    
+
+
 class ContaCorrente(Conta):
     pass
 
@@ -29,10 +88,176 @@ class Historico():
 
 #########################################################
 class Cliente():
-    pass
+    def __init__(self, endereco):
+        self._endereco = endereco
+        self._contas = []
+    @staticmethod
+    def validar_endereco(endereco):
+        """
+        Verifica se o endereço informado pelo usuário é válido.
+
+        O endereço é uma string com o formato "Logradouro, Numero - Bairro - Cidade/Estado".
+        """
+        if not isinstance(endereco, str):
+            print("@@@ Endereço inválido. @@@")
+            return False
+
+        padrao = r"^[A-Za-z0-9\s]+,\s\d+\s-\s[A-Za-z\s]+-\s[A-Za-z\s]+/\w{2}$"
+        if not re.match(padrao, endereco):
+            print("@@@ Endereço inválido. @@@")
+            return False
+
+        return True
+    
+    def adicionar_conta(self, conta):
+        """Adiciona uma conta ao cliente.
+        """
+        if isinstance(conta, Conta):
+            self._contas.append(conta)
+        else:
+            raise TypeError("O objeto deve ser uma instância de Conta.")
+        
+    @property
+    def qtd_contas(self):
+        """Retorna a quantidade de contas do cliente.
+        """
+        return len(self._contas)
+    
+    def listar_contas(self):
+        """Lista as contas do cliente.
+        """
+        if self.qtd_contas == 0:
+            print("Nenhuma conta cadastrada.")
+            return None
+        elif self.qtd_contas == 1:
+            return next((c for c in self._contas if c.cpf == cpf), None)
+        else:
+            for idx, conta in enumerate(self._contas, 1):
+                print(f"{idx}. Número da conta: {conta.numero}")
+        try:
+            conta_selecionada = int(input("Selecione o número da conta que deseja operar: ")) - 1
+        except ValueError:
+            print("@@@ Entrada inválida. Por favor, digite um número. @@@")
+            return None
+
+        if 0 <= conta_selecionada < self.qtd_contas:
+            conta = self._contas[conta_selecionada]
+            print(f"Conta selecionada: {conta.numero}")
+            return conta
+        else:
+            print("@@@ Número de conta inválido. Tente novamente. @@@")
+        return None
+
 
 class PessoaFisica(Cliente):
-    pass
+    def __init__(self, nome, cpf, data_nascimento, **kwargs):
+        self._nome = nome
+        self._cpf = cpf
+        self._data_nascimento = data_nascimento
+        super().__init__(**kwargs)
 
-##################################################
+    @classmethod
+    def criar_com_validacao(cls, nome, cpf, data_nascimento, endereco):
+        if not cls.validar_cpf(cpf):
+            raise ValueError("CPF inválido")
+        if not cls.validar_endereco(endereco):
+            raise ValueError("Endereço inválido")
+        return cls(nome, cpf, data_nascimento, endereco=endereco)
+    
+
+    @staticmethod
+    def validar_cpf(cpf):
+        """
+        Verifica se o CPF informado pelo usuário é válido e retorna o CPF.
+        """
+        # cpf = input("Digite o CPF (apenas números): ").strip().replace(".", "").replace("-", "")
+        if not cpf.isdigit() or len(cpf) != 11:
+            print("@@@ CPF inválido. Deve conter 11 números. @@@")
+            return None
+        if not Banco.buscar_cliente_por_cpf(cpf):
+            print("@@@ CPF já cadastrado. @@@")
+            return None
+        return cpf
+
+#################### FUNÇÕES AUXILIARES #############################
+def limpar_tela():
+    """Limpa a tela do terminal."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def exibir_menu(texto):
+    """
+    Exibe um menu e retorna a opção escolhida pelo usuário.
+    """
+    return input(textwrap.dedent(texto))
+
+############################# MAIN MENU #############################
 if __name__ == "__main__":
+    """Função principal que executa o sistema bancário.
+    """
+    menu_inicial = """
+    Bem-vindo ao Banco DIO
+
+    Você possui conta com a gente?
+    [s] Sim
+    [n] Não
+    => """
+
+    while True:
+        #################################### MENU INICIAL ####################################
+        limpar_tela()
+        # Caso o usuário não tenha conta
+        digito = exibir_menu(menu_inicial)
+
+        banco = Banco()
+
+        if digito == "n":
+            if input("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
+                try:
+                    nome = input("Digite seu nome completo: ")
+                    cpf = input("Digite seu CPF (apenas números): ")
+                    data_nascimento = input("Digite sua data de nascimento (DD/MM/AAAA): ")
+                    endereco = input("Digite seu endereço: ")
+
+                    # Validação de CPF e criação do cliente
+                    cliente = PessoaFisica.criar_com_validacao(nome, cpf, data_nascimento, endereco)
+                    conta = banco.criar_conta_corrente(cliente)
+
+                except ValueError as e:
+                    print(f"Erro ao criar conta: {e}")
+            else:
+                print("@@@ Operação cancelada, por favor tente novamente mais tarde @@@")
+                continue
+        #Caso o usuário já tenha conta    
+        elif digito == "s":
+            print("--- Ótimo, vamos começar a operar com sua conta ---")
+        else:
+            print("@@@ Opção inválida, por favor tente novamente @@@")
+            continue
+        
+####################################  AUTENTICACAO ##################################
+        limpar_tela()
+
+        menu_autenticacao = """
+        ============== AUTENTICAÇÃO ==============
+        Siga os próximos passos para logar em sua conta:
+        """
+        exibir_menu(menu_autenticacao)
+
+        # Solicita o CPF do usuário
+        cpf_usuario = PessoaFisica.validar_cpf(input("Digite seu CPF (apenas números): "))
+        if not cpf_usuario: continue
+
+        # Busca o cliente pelo CPF
+        cliente = banco.buscar_cliente_por_cpf(cpf_usuario)
+        if not cliente: continue
+
+        conta = cliente.listar_contas()
+        if not conta:
+            print("@@@ Conta não encontrada. @@@")
+            continue
+
+        print(f"--- Bem-vindo(a) {cliente.nome}!---")
+        input("Pressione Enter para continuar...")
+        limpar_tela()
+
+        
