@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import os
 import re
 import textwrap
+from datetime import datetime, date
 
 class Banco:
     def __init__(self):
@@ -27,10 +28,11 @@ class Banco:
         return len(self._contas) + 1
 
     def buscar_cliente_por_cpf(self, cpf):
-        return next((c for c in self.clientes if c.cpf == cpf), None)
+        return next((c for c in self._clientes if c._cpf == cpf), None)
+        
 
     def buscar_conta_por_numero(self, numero):
-        return next((c for c in self.contas if c.numero == numero), None)
+        return next((c for c in self.contas if c._numero == numero), None)
     
 class Transacao(ABC):
     @abstractmethod
@@ -51,22 +53,27 @@ class Saque(Transacao):
         pass
 
 class Conta():
-    def __init__(self, saldo, numero, agencia, cliente, historico=None): 
+    def __init__(self, numero, cliente, saldo = 0.0, agencia = '0001'): 
         self._saldo = saldo
         self._numero = numero
         self._agencia = agencia
         self._cliente = cliente
-        self._historico = historico or Historico()
+        self._historico = Historico()
 
     @property
     def saldo(self):
         return self._saldo
     
+    @classmethod
     def nova_conta(cls, cliente, numero):
         """
         Método de classe para criar uma nova conta.
         """
-        pass
+        if not isinstance(cliente, Cliente):
+            raise TypeError("O cliente deve ser uma instância de Cliente.")
+        return cls(numero=numero, cliente=cliente)
+    
+    
     def sacar(self, valor):
         """
         Método para sacar um valor da conta.
@@ -81,10 +88,21 @@ class Conta():
 
 
 class ContaCorrente(Conta):
-    pass
+    def __init__(self, limite = 1000, limite_saques = 3, **kwargs):
+        self._limite = limite  # Limite padrão para conta corrente
+        self._limite_saques = limite_saques
+        super().__init__(**kwargs)
+
+    
 
 class Historico():
-    pass
+    def __init__(self):
+        self._transacoes = []
+    def adicionar_transacao(self, transacao):
+        """
+        Adiciona uma transação ao histórico.
+        """
+        pass
 
 #########################################################
 class Cliente():
@@ -102,11 +120,16 @@ class Cliente():
             print("@@@ Endereço inválido. @@@")
             return False
 
-        padrao = r"^[A-Za-z0-9\s]+,\s\d+\s-\s[A-Za-z\s]+-\s[A-Za-z\s]+/\w{2}$"
-        if not re.match(padrao, endereco):
-            print("@@@ Endereço inválido. @@@")
+        # Aceita endereços no formato "Logradouro, Numero - Bairro - Cidade/Estado"
+        # Exemplo: "Rua das Flores, 123 - Centro - São Paulo/SP"
+        partes = endereco.split(" - ")
+        if len(partes) != 3:
+            print("@@@ Endereço inválido. Formato esperado: 'Logradouro, Numero - Bairro - Cidade/Estado'. @@@")
             return False
-
+        logradouro_numero, bairro, cidade_estado = partes
+        if "," not in logradouro_numero or "/" not in cidade_estado:
+            print("@@@ Endereço inválido. Certifique-se de usar vírgula e barra nos lugares corretos. @@@")
+            return False
         return True
     
     def adicionar_conta(self, conta):
@@ -130,7 +153,7 @@ class Cliente():
             print("Nenhuma conta cadastrada.")
             return None
         elif self.qtd_contas == 1:
-            return next((c for c in self._contas if c.cpf == cpf), None)
+            return next((c for c in self._contas if c._cliente._cpf == cpf), None)
         else:
             for idx, conta in enumerate(self._contas, 1):
                 print(f"{idx}. Número da conta: {conta.numero}")
@@ -155,18 +178,47 @@ class PessoaFisica(Cliente):
         self._cpf = cpf
         self._data_nascimento = data_nascimento
         super().__init__(**kwargs)
+    
+    @property
+    def nome(self):
+        return self._nome.split(' ')[0]  # Retorna apenas o primeiro nome
 
     @classmethod
-    def criar_com_validacao(cls, nome, cpf, data_nascimento, endereco):
-        if not cls.validar_cpf(cpf):
+    def criar_com_validacao(cls, nome, cpf, data_nascimento, banco,  endereco):
+        if not cls.validar_cpf(cpf, banco):
             raise ValueError("CPF inválido")
         if not cls.validar_endereco(endereco):
             raise ValueError("Endereço inválido")
+        
+        data_nascimento = cls.validar_data_nascimento(data_nascimento)
+        if not data_nascimento:
+            raise ValueError("Data de nascimento inválida")
+        
         return cls(nome, cpf, data_nascimento, endereco=endereco)
-    
+
+    @classmethod
+    def validar_data_nascimento(cls, data_nascimento):
+        """
+        Valida a data de nascimento do cliente.
+        Retorna a data de nascimento do cliente em formato datetime.
+        """
+        dia, mes, ano = map(int, data_nascimento.strip().split("/"))
+        data_nascimento = date(ano, mes, dia)
+        
+        today = date.today()
+        idade = today - data_nascimento
+
+        if data_nascimento > today:
+            print("@@@ Data de nascimento inválida. Deve ser uma data passada. @@@")
+            return False
+        if idade.days // 365 < 18:
+            print("@@@ Cliente deve ter pelo menos 18 anos. @@@")
+            return False
+        return data_nascimento
+        
 
     @staticmethod
-    def validar_cpf(cpf):
+    def validar_cpf(cpf, banco = None):
         """
         Verifica se o CPF informado pelo usuário é válido e retorna o CPF.
         """
@@ -174,7 +226,9 @@ class PessoaFisica(Cliente):
         if not cpf.isdigit() or len(cpf) != 11:
             print("@@@ CPF inválido. Deve conter 11 números. @@@")
             return None
-        if not Banco.buscar_cliente_por_cpf(cpf):
+        if banco is None:
+            return cpf
+        if banco.buscar_cliente_por_cpf(cpf):
             print("@@@ CPF já cadastrado. @@@")
             return None
         return cpf
@@ -219,7 +273,7 @@ if __name__ == "__main__":
                     endereco = input("Digite seu endereço: ")
 
                     # Validação de CPF e criação do cliente
-                    cliente = PessoaFisica.criar_com_validacao(nome, cpf, data_nascimento, endereco)
+                    cliente = PessoaFisica.criar_com_validacao(nome, cpf, data_nascimento, banco, endereco)
                     conta = banco.criar_conta_corrente(cliente)
 
                 except ValueError as e:
@@ -234,7 +288,7 @@ if __name__ == "__main__":
             print("@@@ Opção inválida, por favor tente novamente @@@")
             continue
         
-####################################  AUTENTICACAO ##################################
+        ################################# AUTENTICACAO ##################################
         limpar_tela()
 
         menu_autenticacao = """
@@ -259,5 +313,20 @@ if __name__ == "__main__":
         print(f"--- Bem-vindo(a) {cliente.nome}!---")
         input("Pressione Enter para continuar...")
         limpar_tela()
+         ############################### MENU_OPERAÇOES ######################################################################
+
+        ## Nesse ponto temos o usuário e a conta selecionada (usuario e conta)
+
+        menu_op = """
+    Selecione a operação desejada:
+
+    [d] Depositar
+    [s] Sacar
+    [e] Extrato
+    [q] Sair
+
+    => """
+        limpar_tela()
+        opcao = exibir_menu(menu_op)
 
         
