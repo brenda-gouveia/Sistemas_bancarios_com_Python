@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import os
 import re
 import textwrap
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 
 class Banco:
     def __init__(self):
@@ -25,7 +25,7 @@ class Banco:
         """
         Retorna o número total de contas no banco.
         """
-        return len(self._contas) + 1
+        return len(self._contas)
 
     def buscar_cliente_por_cpf(self, cpf):
         return next((c for c in self._clientes if c._cpf == cpf), None)
@@ -40,17 +40,28 @@ class Transacao(ABC):
         pass
 class Deposito(Transacao):
     def __init__(self, valor):
-        self.valor = valor
+        self._valor = valor
+        self._data = datetime.now(timezone.utc)  # Horário de Brasília
+    
+    def __str__(self):
+        data = self._data.astimezone(timezone(timedelta(hours=-3)))  # Convertendo para horário de Brasília
+        d = data.strftime("%d/%m/%Y %H:%M:%S")
+        return d + f" Depósito de R$ {self._valor:.2f}"
 
     def registrar(self, conta):
-        pass
+        conta._historico.adicionar_transacao(self)
 
 class Saque(Transacao):
     def __init__(self, valor):
-        self.valor = valor
+        self._valor = valor
+        self._data = datetime.now(timezone.utc)  # Horário de Brasília
 
     def registrar(self, conta):
-        pass
+        conta._historico.adicionar_transacao(self)
+    def __str__(self):
+        data = self._data.astimezone(timezone(timedelta(hours=-3)))  # Convertendo para horário de Brasília
+        d = data.strftime("%d/%m/%Y %H:%M:%S")
+        return d + f" Saque de R$ {self._valor:.2f}"
 
 class Conta():
     def __init__(self, numero, cliente, saldo = 0.0, agencia = '0001'): 
@@ -59,6 +70,19 @@ class Conta():
         self._agencia = agencia
         self._cliente = cliente
         self._historico = Historico()
+    
+    def __str__(self):
+        cabecalho = textwrap.dedent("""
+        ================ EXTRATO ================
+        """)
+        info = (
+            f"Conta {self._numero} - Agência {self._agencia}\n\n"
+            f"Cliente: {self._cliente.nome} - Saldo: R$ {self.saldo:.2f}\n\n"
+            f"=========================================\n"
+            f"Histórico de Transações:\n\n{self._historico}"
+            f"\n=========================================\n"
+        )
+        return f"{cabecalho}{info}"
 
     @property
     def saldo(self):
@@ -78,19 +102,37 @@ class Conta():
         """
         Método para sacar um valor da conta.
         """
-        pass
+        if valor > self.saldo:
+            print("--- Saldo insuficiente para saque. ---")
+            return False
+        if valor > self._limite:
+            print(f"--- Saque excede o limite de R$ {self._limite:.2f}. ---")
+            return False
+        if self._qtd_saques >= self._limite_saques:
+            print(f"--- Limite de saques diários atingido ({self._limite_saques} saques). ---")
+            return False
+        
+        self._saldo -= valor
+        
+        self._qtd_saques+= 1
+        # print(f"--- Saque de R$ {valor:.2f} realizado com sucesso! Novo saldo: R$ {self.saldo:.2f} ---")
+
+        return True
     def depositar(self, valor):
         """
         Método para depositar um valor na conta.
         """
-        pass
-    
+        self._saldo += valor
+        # print(f"--- Depósito realizado com sucesso! Novo saldo: R$ {self._saldo:.2f} ---")
+
+        return True
 
 
 class ContaCorrente(Conta):
     def __init__(self, limite = 1000, limite_saques = 3, **kwargs):
         self._limite = limite  # Limite padrão para conta corrente
         self._limite_saques = limite_saques
+        self._qtd_saques = 0  # Contador de saques realizados
         super().__init__(**kwargs)
 
     
@@ -98,17 +140,40 @@ class ContaCorrente(Conta):
 class Historico():
     def __init__(self):
         self._transacoes = []
+    
+    def __str__(self):
+        """
+        Retorna uma string representando o histórico de transações.
+        """
+        if not self._transacoes:
+            return "Nenhuma transação registrada."
+        return "\n".join(str(t) for t in self._transacoes)
+
     def adicionar_transacao(self, transacao):
         """
         Adiciona uma transação ao histórico.
         """
-        pass
+        if not isinstance(transacao, Transacao):
+            raise TypeError("A transação deve ser uma instância de Transacao.")
+        self._transacoes.append(transacao)
 
 #########################################################
 class Cliente():
     def __init__(self, endereco):
         self._endereco = endereco
         self._contas = []
+
+    def realizar_transacao(self, conta, transacao):
+        """
+        Realiza uma transação na conta do cliente.
+        """
+        transacao.registrar(conta)
+
+        if transacao.__class__.__name__ == "Deposito":
+            return conta.depositar(transacao._valor)
+        elif transacao.__class__.__name__ == "Saque":
+            return conta.sacar(transacao._valor)
+
     @staticmethod
     def validar_endereco(endereco):
         """
@@ -244,33 +309,50 @@ def exibir_menu(texto):
     """
     return input(textwrap.dedent(texto))
 
+def validar_valor():
+    valor = float(input("Digite o valor:"))
+    if valor <= 0:
+        print("@@@ Valor inválido. O depósito deve ser maior que zero. @@@")
+        return None
+    return valor
+
+def processar_transacao(cliente, conta, OperacaoClasse, mensagem_sucesso, mensagem_erro):
+    valor = validar_valor()
+    try:
+        operacao = OperacaoClasse(valor)
+        if not cliente.realizar_transacao(conta, operacao):
+            raise ValueError(mensagem_erro)
+        print(f"\n@@@ {mensagem_sucesso.format(valor=valor)} @@@")
+    except Exception as e:
+        print(f"@@@ Erro: {e} @@@")
 ############################# MAIN MENU #############################
 if __name__ == "__main__":
     """Função principal que executa o sistema bancário.
     """
     menu_inicial = """
+
     Bem-vindo ao Banco DIO
 
     Você possui conta com a gente?
     [s] Sim
     [n] Não
     => """
+    banco = Banco()
 
     while True:
         #################################### MENU INICIAL ####################################
-        limpar_tela()
+        
         # Caso o usuário não tenha conta
         digito = exibir_menu(menu_inicial)
 
-        banco = Banco()
 
         if digito == "n":
             if input("Você será redirecionado para criar uma conta, pressione enter para continuar:") == "":
                 try:
-                    nome = input("Digite seu nome completo: ")
-                    cpf = input("Digite seu CPF (apenas números): ")
-                    data_nascimento = input("Digite sua data de nascimento (DD/MM/AAAA): ")
-                    endereco = input("Digite seu endereço: ")
+                    nome = input("Digite seu nome completo: ")  #"Ana da Silva"
+                    cpf = input("Digite seu CPF (apenas números): ")#12345678901
+                    data_nascimento = input("Digite sua data de nascimento (DD/MM/AAAA): ")#"01/01/2000"
+                    endereco = input("Digite seu endereço: ")#"Rua das Flores, 123 - Centro - São Paulo/SP"
 
                     # Validação de CPF e criação do cliente
                     cliente = PessoaFisica.criar_com_validacao(nome, cpf, data_nascimento, banco, endereco)
@@ -315,7 +397,7 @@ if __name__ == "__main__":
         limpar_tela()
          ############################### MENU_OPERAÇOES ######################################################################
 
-        ## Nesse ponto temos o usuário e a conta selecionada (usuario e conta)
+        ## Nesse ponto temos o usuário e a conta selecionada (cliente e conta)
 
         menu_op = """
     Selecione a operação desejada:
@@ -329,4 +411,28 @@ if __name__ == "__main__":
         limpar_tela()
         opcao = exibir_menu(menu_op)
 
-        
+        if opcao == "d":
+            processar_transacao(
+                cliente,
+                conta,
+                Deposito,
+                mensagem_sucesso="Depósito de R$ {valor} realizado com sucesso!",
+                mensagem_erro="Erro ao realizar depósito."
+                )
+        elif opcao == "s":
+            processar_transacao(
+            cliente,
+            conta,
+            Saque,
+            mensagem_sucesso="Saque de R${valor} realizado com sucesso!",
+            mensagem_erro="Erro ao realizar saque."
+            )
+        elif opcao == "e":
+            print(conta)
+        elif opcao == "q":
+            print("Saindo do sistema...")
+            break
+        print("\nAgradecemos por ter escolhido nosso banco, volte sempre!\n\n")
+        input("Pressione Enter para continuar...")
+        limpar_tela()
+
